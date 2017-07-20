@@ -1,2 +1,0 @@
-/scratch/bcb/ywang52/TData/miniconda2/lib/python2.7/site-packages/gsea-1.0.0-py2.7.egg
-/scratch/bcb/ywang52/TData/miniconda2/bin/GSEA.py
