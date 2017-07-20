@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -- coding:utf-8 --
-# Last-modified: 20 Jul 2017 05:29:14 PM
+# Last-modified: 20 Jul 2017 05:25:57 PM
 #
 #         Module/Scripts Description
 # 
@@ -139,7 +139,6 @@ def calculateES3D(grank,gsets,prefix,ranking=None,weight=1,nperm=1000,seed=1024)
     # correlation vector
     N, M = grank.shape[0], rdf.shape[0] 
     if ranking is None or weight==0:
-        touchtime("Weighted correclation vector is suppressed because either ranking metric is not provided or weight is set to 0.")
         cor_vec = numpy.repeat(1.0,N)
     else: # list
         cor_vec = numpy.abs(ranking**weight)  # correlation vector

@@ -1,4 +1,4 @@
-Python Modules for XXXXXXXX
+Python Modules for Gene Set Enrichment Analysis
 
 1. Prerequisition
 

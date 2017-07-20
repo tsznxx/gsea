@@ -1,0 +1,13 @@
+MANIFEST.in
+README.rst
+RELEASE
+install.sh
+setup.py
+bin/GSEA.py
+gsea.egg-info/PKG-INFO
+gsea.egg-info/SOURCES.txt
+gsea.egg-info/dependency_links.txt
+gsea.egg-info/requires.txt
+gsea.egg-info/top_level.txt
+src/Algorithms.py
+src/__init__.py
