@@ -1,5 +1,5 @@
 #!/usr/bin/python
-#Last-modified: 20 Jul 2017 04:59:31 PM
+#Last-modified: 23 Jul 2017 01:05:22 AM
 
 #         Module/Scripts Description
 # 
@@ -75,7 +75,7 @@ if __name__ == '__main__':
           long_description = long_description,
           package_dir={PROG:'src'},
           packages = [PROG],
-          scripts=['bin/GSEA.py'],
+          scripts=['bin/GSEA.py','bin/gsea.py'],
           ext_modules=[],
           classifiers=['Environment :: Console',
                        'Development Status :: 3 - Alpha',

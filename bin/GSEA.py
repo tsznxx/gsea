@@ -40,11 +40,12 @@ def argParser():
 
     pr = p.add_argument_group('Required')
     pr.add_argument("-e","--exprs",dest="exprs",type=str,metavar="gene_exprs.tsv", required=True, help="Gene expression matrix file in text format.")
-    pr.add_argument("-c","--cls",dest="cls",type=str,metavar='sample.cls',required=True,help="Sample class file in .cls format.")
     pr.add_argument("-g","--gmt",dest="gmt",type=str,metavar="genesets.gmt",required=True,help="Gene set file in .gmt format.")
     pr.add_argument("-o",dest="outprefix",type=str,metavar="outprefix",required=True,help="GSEA output file prefix.")
-    
+
     po = p.add_argument_group('Optional')
+    po.add_argument("-c","--cls",dest="cls",type=str,metavar='sample.cls',default=None,help="Sample class file in .clsformat.")
+    po.add_argument("--lambda", dest="lamb",type=str,metavar="lamba x:x",default=None,help="A lambda expression to interpret the sample labels from the expression sample names.")
     po.add_argument("--method",dest="method",type=str,default='ttest',choices=['ttest'],help="Algorithms used for ranking metric calculation.")
     po.add_argument("--ascend",dest="ascend",action='store_true',default=False,help="Rank genes in ascending order. [Default is False.]")
     po.add_argument("--seed",dest="seed",type=int,metavar="1024",default=1024,help="Seed to generate random values.")
@@ -57,7 +58,7 @@ def argParser():
     args = p.parse_args()
     return args
 
-def GSEA(exprs,cls,gmt,prefix,ascending=False,method='ttest',weight=1,min_gene=15,max_gene=500,seed=1024,nperm=1000):
+def GSEA(exprs,cls,gmt,prefix,ascending=False,method='ttest',lamb=None,weight=1,min_gene=15,max_gene=500,seed=1024,nperm=1000):
     '''
     Run GSEA algorithm.
     Parameters:
@@ -69,6 +70,10 @@ def GSEA(exprs,cls,gmt,prefix,ascending=False,method='ttest',weight=1,min_gene=1
             gene set matrix file.
         ascending: bool
             Rank genes in ascending order. [Default is False.]
+        method: string
+            method used for ranking calculation.
+        lamb: string
+            lambda expression to interpret class labels from sample names.
         weight: float
             GSEA's weighted score. weighted_r = r**weight. This is to balance the weight of the ranking metric.
         min_gene, max_gene: int
@@ -81,7 +86,7 @@ def GSEA(exprs,cls,gmt,prefix,ascending=False,method='ttest',weight=1,min_gene=1
         rdf: pandas.DataFrame
             result dataframe contains: gsetid (as index), description, ES, NES, pvalue, FDR
     '''
-    grank = gsea.cal_rank(exprs,cls,prefix=prefix,ascending=ascending,method=method)
+    grank = gsea.cal_rank(exprs,cls,prefix=prefix,ascending=ascending,lamb=lamb,method=method)
     gsets = gsea.read_genesets(gmt,min_gene=min_gene,max_gene=max_gene)
     gsea.calculateES3D(grank.index,gsets,prefix=prefix,ranking=grank['rnk'],weight=weight,nperm=nperm,seed=seed)
 
@@ -99,5 +104,4 @@ def GSEA(exprs,cls,gmt,prefix,ascending=False,method='ttest',weight=1,min_gene=1
 
 if __name__=="__main__":
     args = argParser()
-    GSEA(args.exprs,args.cls,args.gmt,prefix=args.outprefix,ascending=args.ascend,method=args.method,weight=args.weight,min_gene=args.mingene,max_gene=args.maxgene,seed=args.seed,nperm=args.nperm)
-
+    GSEA(args.exprs,args.cls,args.gmt,prefix=args.outprefix,ascending=args.ascend,lamb=args.lamb,method=args.method,weight=args.weight,min_gene=args.mingene,max_gene=args.maxgene,seed=args.seed,nperm=args.nperm)

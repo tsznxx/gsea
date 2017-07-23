@@ -63,8 +63,11 @@ def argParser():
     args = p.parse_args()
     return args
 
-def touchtime(lstr,ofh=sys.stderr):
-    ofh.write("# {0}: {1}\n".format(time.ctime(),lstr))
+def touchtime(lstr=None,ofh=sys.stderr):
+    if lstr is None:
+        ofh.write('\n') # empty line
+    else:
+        ofh.write("# {0}: {1}\n".format(time.ctime(),lstr))
 
 def cal_rank(exprfile,clsfile,prefix,lamb=None,ascending=False,method='ttest'):
     '''
@@ -93,14 +96,13 @@ def cal_rank(exprfile,clsfile,prefix,lamb=None,ascending=False,method='ttest'):
             fun = eval(lamb)
             cls = [fun(x) for x in cls]
         cls = numpy.array(cls)
+        labels = list(set(cls))
+        ctl, trmt = cls[0], labels[1] if labels[0]==cls[0] else labels[0]
     else:
         with open(clsfile) as fh:
             nsam, nlabel, _ = fh.next().split()
             _, ctl, trmt = fh.next().split()
-            cls = numpy.array([int(i) for i in fh.next().split()])
-    labels = list(set(cls))
-    print labels
-    ctl, trmt = cls[0], labels[1] if labels[0]==cls[0] else labels[0]
+            cls = numpy.array([int(i) for i in fh.next().split()])    
     touchtime("Labels identified: {0}:{1}, {2}:{3} ...".format(ctl,(cls==ctl).sum(),trmt,(cls==trmt).sum()))
     
     # ranking

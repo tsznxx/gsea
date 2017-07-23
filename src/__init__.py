@@ -37,10 +37,13 @@ numpy.seterr(divide='ignore')
 # Misc functions
 # ------------------------------------
 
-def touchtime(lstr,ofh=sys.stderr):
-    ofh.write("# {0}: {1}\n".format(time.ctime(),lstr))
+def touchtime(lstr=None,ofh=sys.stderr):
+    if lstr is None:
+        ofh.write('\n') # empty line
+    else:
+        ofh.write("# {0}: {1}\n".format(time.ctime(),lstr))
 
-def cal_rank(exprfile,clsfile,prefix,ascending=False,method='ttest'):
+def cal_rank(exprfile,clsfile,prefix,lamb=None,ascending=False,method='ttest'):
     '''
     Calculate rank from gene expression file, class file.
     Parameters:
@@ -61,14 +64,24 @@ def cal_rank(exprfile,clsfile,prefix,ascending=False,method='ttest'):
     expr = pandas.read_table(exprfile,index_col=0)
     
     touchtime("Read sample class file ...")
-    with open(clsfile) as fh:
-        nsam, nlabel, _ = fh.next().split()
-        _, ctl, trmt = fh.next().split()
-        cls = numpy.array([int(i) for i in fh.next().split()])
+    if clsfile is None:
+        cls = open(exprfile).next().rstrip().split('\t')[1:] # skip gene names
+        if not lamb is None:
+            fun = eval(lamb)
+            cls = [fun(x) for x in cls]
+        cls = numpy.array(cls)
+        labels = list(set(cls))
+        ctl, trmt = cls[0], labels[1] if labels[0]==cls[0] else labels[0]
+    else:
+        with open(clsfile) as fh:
+            nsam, nlabel, _ = fh.next().split()
+            _, ctl, trmt = fh.next().split()
+            cls = numpy.array([int(i) for i in fh.next().split()])
+    touchtime("Labels identified: {0}:{1}, {2}:{3} ...".format(ctl,(cls==ctl).sum(),trmt,(cls==trmt).sum()))
     
     # ranking
     touchtime("Calculate ranking metric using {0} method ...".format(method))
-    idx = cls == pandas.unique(cls)[0]
+    idx = cls == cls[0] # first encountered label as control
     grank = pandas.DataFrame(index=expr.index)
     if method == 'ttest':
         tscores, pvalues = stats.ttest_ind(expr.loc[:,idx],expr.loc[:,~idx],axis=1)
@@ -215,6 +228,98 @@ def calculateES3D(grank,gsets,prefix,ranking=None,weight=1,nperm=1000,seed=1024)
     rdf.to_csv("{0}_GSEA.tsv".format(prefix),sep="\t")
     return rdf
 
+
+#def _cal_es_pval(ind,rs=numpy.random.RandomState(),niter=1000):
+#    '''
+#    Private function for permutation and pvalue calculation using empirical CDF.
+#    Parameters:
+#        ind: pandas.Series of bools
+#            indicator of gene in geneset
+#        rs: numpy.random.RandomState()
+#            randome state generator
+#        niter: int
+#            number of iteration
+#    Returns:
+#        gsid: string
+#            gene set id. Used to keep track of the gene sets
+#        es: float
+#            enrichment score
+#        pval: float
+#            pvalue inferred from empirical CDF.
+#    NOTE: 
+#        we do some tricks here.
+#        1. Assign hits and nonhits with ratios by: indmat*(nMiss_ratio+nHit_ratio)-nMiss_ratio
+#        2. indmat is N by niter+1. The last element of indmat is not shuffled.
+#    '''
+#
+#    # assign ratio to hits and nonhits
+#    N = len(ind)
+#    nHit = sum(ind) # Number of hits
+#    if nHit == 0:
+#        return 0.,1.
+#    nHit_ratio= 1./nHit # ratio of hits, sum(hits)=1
+#    nMiss_ratio = 1./(N-nHit) # ratio of misses, sum(nonhits)=-1
+#
+#    # generate permutation matrix
+#    indmat = ind.repeat(niter+1).reshape(N,niter+1).T
+#    numpy.apply_along_axis(rs.shuffle ,1,indmat[:-1]) # the last one is not shuffled.
+#
+#    # calculate ens
+#    es = (ind*(nMiss_ratio+nHit_ratio)-nMiss_ratio).cumsum() # 
+#    indmat = indmat*(nMiss_ratio+nHit_ratio)-nMiss_ratio
+#    ens = numpy.cumsum(indmat,1)
+#    EMAX, EMIN = numpy.max(ens,1), numpy.min(ens,1)
+#    esl = numpy.where(numpy.abs(EMAX)>numpy.abs(EMIN),EMAX,EMIN)
+#    es, esl = esl[-1], esl[:-1]
+#    
+#    # Calculate pvalue using empirical CDF (last element is the enrichment score to test) 
+#    # Normalize the ES score by average ES
+#    # possible errors: divided by zero or nan. Set pval=1.0 and nes=0.0
+#    try:
+#        if es >=0:
+#            pval = float(numpy.sum(esl>es))/numpy.sum(esl>=0)
+#            nes = es/esl[esl>=0].mean()
+#        else:
+#            pval = float(numpy.sum(esl<es))/numpy.sum(esl<0)
+#            nes = -es/esl[esl<0].mean() 
+#    except:
+#        pval, nes = 1.0, 0.0
+#    return es,nes,pval
+#def calculateES(grank,gsetfile,nproc=10,niter=1000,seed=1024,min_gene=15):
+#    '''
+#    Do permuation on genesets and calculate pvalue using empirical CDF.
+#    Parameters:
+#        grank: pandas.DataFrame
+#            gene expression data frame sorted by 'ranking' socres.
+#        gsetfile: string
+#            gene set file. 1st column is the gene set ID. 2nd column is the gene set description and the rest is the genes in the gene set.
+#
+#    '''
+#    # get geneset hit matrix
+#    gsets = {}
+#    descriptions = {}
+#    for line in open(gsetfile):
+#        items = line.rstrip().split('\t')
+#        descriptions[items[0]] = items[1]
+#        if len(items)>= min_gene:
+#            gsets[items[0]] = items[2:]
+#    rdf = pandas.DataFrame({'description':descriptions.values()},index=descriptions.keys())
+#    rdf = rdf.sort_index()
+#    rdf.name = "gset"
+#
+#    # run in multiple processes
+#    rs = numpy.random.RandomState(seed)
+#    pool = Pool(processes=nproc) 
+#    ts = []
+#    for gsid in rdf.index[:]:
+#        ts.append(pool.apply_async(_cal_es_pval,args=(grank.isin(gsets[gsid]),rs,niter)))
+#    pool.close()
+#    pool.join()
+#
+#    # summarize results to dataframe.
+#    rdf['ES'], rdf['NES'],rdf['pvalue'] = zip(*[t.get() for t in ts])
+#    rdf = rdf.sort_values('NES',ascending=False)
+#    return rdf
 # ------------------------------------
 # Classes
 # ------------------------------------
