@@ -1,5 +1,5 @@
 #!/usr/bin/python
-#Last-modified: 23 Jul 2017 01:05:22 AM
+#Last-modified: 23 Jul 2017 11:44:09 PM
 
 #         Module/Scripts Description
 # 
@@ -59,7 +59,9 @@ if __name__ == '__main__':
         os.system('if [ -d {0}.egg-info ]; then rm -rf {0}.egg-info; fi'.format(PROG))
     
     # install requirement
-    install_requires = [ ["numpy >= 1.4.1"]]
+    install_requires = [ ["numpy >= 1.4.1"],
+                         ["pandas >= 0.20.2"],
+                         ["scipy >= 0.19.1"]]
     # Python 2.6 requires argparse
     if float(sys.version[:3]) == 2.6:
         install_requires.append(["argparse >= 1.2.1"])
